@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Socket.io Example</title>
+	<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">  
+	<script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+	<script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script src="https://cdn.bootcss.com/echarts/3.6.1/echarts.js"></script>
+	<style type="text/css">
+		* {
+			padding: 0;
+			margin: 0;
+		}
+		.txt_center,th{
+			text-align: center;
+		}
+		.progress {
+			margin-bottom: 0;
+		}
+		table {
+			color: white;
+		}
+		td {
+			width: 16.66%;
+		}
+		tbody tr:nth-child(odd) {
+			background-color: rgb(24,24,24);
+		}
+		tbody tr:nth-child(even) {
+			background-color: rgb(38,38,38);
+		}
+		thead {
+			background-color: black;
+		}
+		.table-bordered>tbody>tr>td, .table-bordered>tbody>tr>th, .table-bordered>tfoot>tr>td, .table-bordered>tfoot>tr>th, .table-bordered>thead>tr>td, .table-bordered>thead>tr>th {
+			border: 1px solid rgb(38,130,213);
+		}
+		.used::after  {
+			content: "/"
+		}
+		.total::after {
+			content: "G";
+			margin-right: 5px;
+		}
+		.used, .total {
+			display: inline-block;
+		}
+		.pie {
+			width: 20px;
+			height: 20px;
+			display: inline-block;
+			vertical-align: top;
+			box-shadow: 2px 2px 2px black;
+			border-radius: 10px;
+			margin-left: 5px;
+		}
+		.line {
+			height: 19px;
+			width: 120px;
+			margin-left: 10px;
+			vertical-align: bottom;
+			display: inline-block;
+		}
+		.icon {
+			margin-right: 5px;
+		}
+	</style>
+</head>
+<body>
+	<table class="table table-bordered" style="text-algin:center;">
+		<thead>
+			<tr>
+				<th>名称</th>
+				<th>CPU</th>
+				<th>温度</th>
+				<th>存储</th>
+				<th>访问量</th>
+				<th>网速</th>
+			</tr>
+		</thead>
+		<tbody class="txt_center">
+			<!-- <tr id="server0"  class="">
+				<td>
+					<img src="./assets/img/server.png" alt="">
+					<span>server0</span>
+				</td>
+				<td>
+					<div class="progress">
+						<div id="cpu0" class="progress-bar progress-bar-warning" role="progressbar"  aria-valuemin="0" aria-valuemax="100" style="width: 65%">
+							65%
+						</div>
+					</div>
+				</td>
+				<td>
+					<span id="temp0">30</span>
+					<span>&#8451;</span>
+				</td>
+				<td>
+					<div class="used" id="used0">20</div>
+					<div class="total" id="total0">500</div>
+					<div class="pie" id="pie0"></div>
+				</td>
+				<td>
+					<span id="net_traffic0">300</span>
+				</td>
+				<td>
+					<span id="speed0">20</span>
+					<span>M/s</span>
+					<div class="line" id="line0"></div>
+				</td>
+			</tr> -->
+		</tbody>
+	</table>
+	<script src="/socket.io/socket.io.js"></script>
+	<script type="text/javascript">
+		var socket = io.connect('http://127.0.0.1:3000');
+		var length = 20;
+		
+		var lineData = [];
+		var option0 = {
+			grid: {
+				left: '0%',
+				right: '4%',
+				bottom: '3%',
+				top: '1%',
+			},
+			xAxis : [
+			{
+				type : 'category',
+				boundaryGap : false,
+				data : [],
+				show : false
+			}
+			],
+			yAxis : [
+			{
+				type : '',
+				show : false
+			}
+			],
+			series : [
+			{
+				type:'line',
+				areaStyle: {normal: {}},
+				symbol : 'none'
+			}
+			]
+		};
+		
+		var option = {
+			series : [
+			{
+				type:'pie',
+				radius : '100%',
+				center: ['50%', '50%'],
+				label: {
+					normal:{
+						position: "inside"
+					}
+				},
+				hoverAnimation: false,
+				clockwise: false,
+				data:[
+				{value:100},
+				{value:400}
+				].sort(function (a, b) { return a.value - b.value; }),
+			}
+			],
+			color: ["rgb(38,130,213)","rgb(225,51,41)"]
+		};
+		for ( let i = 0; i < length; i++ ) {
+			$("tbody").append('<tr id="server'+ i +'">'+
+				'<td><img class="icon" src="./assets/img/server.png" alt=""><span>server'+ i +'</span></td>'+
+				'<td><div class="progress"><div id="cpu'+ i +'" class="progress-bar progress-bar-warning" role="progressbar" aria-valuemin="0" aria-valuemax="100" style="width: 65%">65%</div></div></td>'+
+				'<td><span id="temp'+ i +'">30</span><span>&#8451;</span></td>'+
+				'<td><span class="used" id="used'+ i +'">20</span><span class="total" id="total'+ i +'">500</span><div class="pie" id="pie'+ i +'"></div></td>'+
+				'<td><span id="net_traffic'+ i +'">300</span></td>'+
+				'<td><span id="speed'+ i +'">20</span><span>M/s</span><div class="line" id="line'+ i +'"></div></td></tr>'
+				);
+			lineData.push([0,0,0,0,0,0,0,0,0,0,0,0]);
+			let myChartPie = echarts.init(document.getElementById('pie'+ i));
+			let myChartLine = echarts.init(document.getElementById('line'+ i));
+			myChartPie.setOption(option);
+			myChartLine.setOption(option0);
+			myChartLine.setOption({
+				series: [{
+					data: lineData[i]
+				}]
+			});
+		}
+		socket.on('server', function(data) {
+			for( let i = 0; i < length; i++ ) {
+				let cpuval = data['server'+i].cpu;
+				$("#cpu"+i).html(cpuval + "%");
+				if(cpuval <= 50){
+					$("#cpu"+i).css({
+						backgroundColor: "green"
+					});
+				}else if(50 < cpuval && cpuval <= 80){
+					$("#cpu"+i).css({
+						backgroundColor: "orange"
+					});
+				}else if(80 < cpuval && cpuval <= 90) {
+					$("#cpu"+i).css({
+						backgroundColor: "red"
+					});
+				}else if(cpuval > 90) {
+					$("#cpu"+i).css({
+						backgroundColor: "#770000"
+					});
+				}
+				$("#cpu"+i).css({
+					width: data['server'+i].cpu + "%"
+				});
+				$("#temp"+i).text(data['server'+i].temp);
+				$("#used"+i).text(data['server'+i].storage_used);
+				$("#total"+i).text(data['server'+i].storage_total);
+				$("#net_traffic"+i).text(data['server'+i].net_traffic);
+				$("#speed"+i).text(data['server'+i].speed);
+				lineData[i].shift();
+				lineData[i].push(data['server'+i].speed);
+				echarts.getInstanceByDom(document.getElementById('line'+ i)).setOption({
+					series: [{
+						data: lineData[i]
+					}]
+				})
+			}
+		});
+	</script>
+</body>
+</html>
